@@ -1,0 +1,83 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: white;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+}
+
+/* Main Container */
+.main {
+    width: 100%;
+    min-height: 100vh;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    position: relative;
+}
+
+/* Title */
+.title {
+    font-family: 'Rubik Bubbles', cursive;
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    font-size: 1.125rem;
+    font-weight: bold;
+    color: #ff0000;
+}
+
+/* Content Section */
+.content {
+    text-align: center;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.content h1 {
+    font-family: 'Holtwood One SC', serif;
+    font-size: 2.25rem;
+    margin-bottom: 16px;
+}
+
+.content p {
+    font-family: 'Aleo', serif;
+    font-size: 1.25rem;
+    margin-bottom: 32px;
+}
+
+/* Buttons Section */
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Buttons */
+.btn {
+    width: 100%;
+    padding: 12px 24px;
+    background-color: #4F64E9;
+    color: white;
+    border-radius: 8px;
+    font-weight: bold;
+    font-family: 'Russo One', sans-serif;
+    transition: background-color 0.3s;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background-color: #4558d1;
+}

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WORLDY - Login</title>
+    <title>WORLDY - Sign Up</title>
     <link rel="stylesheet" href="static/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
     <style>
@@ -38,21 +38,12 @@
             display: block;
             text-align: left;
         }
-        input[type="text"],
-        input[type="email"],
-        input[type="password"] {
+        input {
             width: 100%;
             padding: 12px;
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 1rem;
-        }
-        .remember-me {
-            display: flex;
-            align-items: center;
-        }
-        input[type="checkbox"] {
-            margin-right: 8px;
         }
         button {
             width: 100%;
@@ -70,18 +61,16 @@
         button:hover {
             background-color: #4558d3;
         }
-        .forgot-password {
-            margin-top: 12px;
-            color: #4a4a4a;
-            text-decoration: none;
-            font-size: 0.875rem;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>LOGIN TO YOUR ACCOUNT</h1>
+        <h1>SIGN UP TO GET STARTED</h1>
         <form>
+            <div>
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username">
+            </div>
             <div>
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email">
@@ -90,13 +79,8 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password">
             </div>
-            <div class="remember-me">
-                <input type="checkbox" id="remember-me" name="remember-me">
-                <label for="remember-me">Remember me</label>
-            </div>
-            <button type="submit">LOGIN</button>
+            <button type="submit">SIGN UP</button>
         </form>
-        <a href="/reset-password" class="forgot-password">Forgot password?</a>
     </div>
 </body>
 </html>

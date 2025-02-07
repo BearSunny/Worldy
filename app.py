@@ -46,7 +46,7 @@ google = oauth.register(
 # Cloudinary config #TODO
 
 @app.route("/")
-# This is the sign-up/login page
+# This is the sign-up/login/login-with-google page
 def index():
     return render_template("index.html")
 
@@ -93,7 +93,7 @@ def reset_password():
 
         if not email or not new_password:
             flash("Please fill in all fields!")
-            return render_template("/reset-password")
+            return render_template("reset_password.html")
         
         user = users_collection.find_one({"email" : email})
         if user:
@@ -103,7 +103,7 @@ def reset_password():
             flash("User with this email does not exist!")
             return redirect("/signup")
     else:
-        return render_template("/reset-password")
+        return render_template("reset_password.html")
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -144,11 +144,10 @@ def signup():
 def google_login():
     """Log_in using Google"""
     try:
-        redirect_uri = url_for('authorize',_external=True)
+        redirect_uri = url_for('google_auth', _external=True)
         return google.authorize_redirect(redirect_uri)
     except Exception as e:
         flash("Error during login!")
-        return redirect("/login")
 
 
 @app.route("/authorize/google")
