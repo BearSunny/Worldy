@@ -5,6 +5,7 @@ from flask_session import Session
 from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
 import datetime
+from datetime import timedelta
 import pymongo
 from pymongo import MongoClient
 import jwt
@@ -57,6 +58,7 @@ def login():
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
+        remember = request.form.get("remember") # Checkbox
 
         if not email or not password:
             flash("Please fill in all fields!")
@@ -72,9 +74,36 @@ def login():
         # Remember which user has logged in
         session["user_id"] = str(user["_id"])
 
+        # Remember users for 30 days
+        if remember:
+            session.permanent = True
+            app.permanent_session_lifetime = timedelta(days=30)
+        
         return redirect("/main")
     else:
         return render_template("login.html")
+
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    """Reset password"""
+    if request.method == "POST":
+        email = request.form.get("email")
+        new_password = request.form.get("new_password")
+
+        if not email or not new_password:
+            flash("Please fill in all fields!")
+            return render_template("/reset-password")
+        
+        user = users_collection.find_one({"email" : email})
+        if user:
+            hash_password = generate_password_hash(new_password)
+            users_collection.update_one({"email": email}, {"$set": {"password_hash": hash_password}})
+        else:
+            flash("User with this email does not exist!")
+            return redirect("/signup")
+    else:
+        return render_template("/reset-password")
 
 
 @app.route("/signup", methods=["GET", "POST"])
