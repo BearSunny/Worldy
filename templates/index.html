@@ -9,26 +9,7 @@
         href="https://fonts.googleapis.com/css2?family=Holtwood+One+SC&family=Aleo&family=Russo+One&family=Rubik+Bubbles&display=swap"
         rel="stylesheet"
     />
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script>
-        function handleCredentialResponse(response) {
-            console.log("Encoded JWT ID token: " + response.credential);
-            // Send the ID token to your server for verification
-        }
-        window.onload = function() {
-            google.accounts.id.initialize({
-                client_id: '885135775276-sioijd42q71uccpv8k9vnn6ve90hqlp4.apps.googleusercontent.com',
-                callback: handleCredentialResponse
-            });
-            google.accounts.id.renderButton(
-                document.getElementById('google-login-button'),
-                { theme: 'outline', size: 'large' }
-            );
-            google.accounts.id.prompt();
-        }
-    </script>
 </head>
-
 <body>
     <main class="main">
         <div class="title">SUNNY</div>
@@ -38,52 +19,9 @@
             <div class="buttons">
                 <button class="btn" onclick="window.location.href = '/signup'">SIGN UP</button>
                 <button class="btn" onclick="window.location.href = '/login'">LOG IN</button>
-                <div id="google-login-button"></div>
+                <button class="btn" onclick="window.location.href = '/login/google'">LOG IN WITH GOOGLE</button>
             </div>
         </div>
     </main>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

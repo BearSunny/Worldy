@@ -22,12 +22,15 @@ app.secret_key = 'supersecretkey'
 app.secret_key = os.getenv("SECRET_KEY", "fallback_secret_key")
 
 # Configure session to use filesystem (instead of signed cookies)
-app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
+app.config['CLIENT_ID'] = CLIENT_ID
+app.config['CLIENT_SECRET'] = CLIENT_SECRET
+app.secret_key = 'minh173'
+
 # Connect to MongoDB
-client = MongoClient("mongodb+srv://minh_huynh:p6JI9yazQsuyknnZ@cluster0.hlktt.mongodb.net/user_data?retryWrites=true&w=majority")
+client = MongoClient("mongodb+srv://minh:RlQqxKyuAhhhms4C@cluster0.hlktt.mongodb.net/user_data?retryWrites=true&w=majority")
 db = client["user_data"]
 users_collection = db["users"]
 
@@ -38,7 +41,7 @@ google = oauth.register(
     client_id=CLIENT_ID,
     client_secret=CLIENT_SECRET,
     server_metadata_uri='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope' : 'openid profile email'}
+    client_kwargs={'scope' : 'openid profile email'},
 )
 
 # JWT secret key #TODO
@@ -144,14 +147,15 @@ def signup():
 def google_login():
     """Log_in using Google"""
     try:
-        redirect_uri = url_for('google_auth', _external=True)
+        redirect_uri = url_for('google_authorize', _external=True)
         return google.authorize_redirect(redirect_uri)
     except Exception as e:
-        flash("Error during login!")
+        flash("Error: !", str(e))
+        return redirect(url_for('login'))
 
 
 @app.route("/authorize/google")
-def google_auth():
+def google_authorize():
     """Authorize users for Google"""
     token = google.authorize_access_token()
     userinfo_endpoint = google.server_metadata['userinfo_endpoint']
