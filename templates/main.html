@@ -6,38 +6,127 @@
     <title>Map Visualization</title>
     <style>
         #map {
-            height: 100vh; /* Full-screen height */
+            height: 100vh;
             width: 100%;
         }
+        #search-box {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            z-index: 1000;
+            background: white;
+        }
+        #autocomplete-results {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            background: white;
+            border: 1px solid #ccc;
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        .result-item {
+            padding: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .result-item:hover {
+            background: #f0f0f0;
+        }
     </style>
+    <!-- Load Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
 <body>
+    <input type="text" id="search-box" placeholder="Search for a location...">
+    <div id="autocomplete-results"></div>
     <div id="map"></div>
 
+    <!-- Load Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
     <script>
-        function initMap() {
-            const map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: 0, lng: 0 }, // Default center
-                zoom: 2, // Global view
-                mapId: "YOUR_MAP_ID", // Optional: For custom styles
+        // Initialize the map
+        var map = L.map('map').setView([20, 0], 2);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        // Create a feature group for markers
+        var markersLayer = L.layerGroup().addTo(map);
+
+        // Fetch user locations from Flask API and display them
+        fetch('/get_locations')
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(user => {
+                    var marker = L.marker([user.lat, user.lng]).addTo(markersLayer);
+                    marker.bindPopup(`<b>${user.name}</b>`);
+                });
             });
 
-            // Example: Fetch user locations from Flask API
-            fetch('/get_locations')
-                .then(response => response.json())
-                .then(data => {
-                    data.forEach(user => {
-                        new google.maps.Marker({
-                            position: { lat: user.lat, lng: user.lng },
-                            map,
-                            title: user.name,
-                        });
-                    });
-                });
-        }
-    </script>
+        // Autocomplete search bar
+        var searchBox = document.getElementById('search-box');
+        var resultsDiv = document.getElementById('autocomplete-results');
 
-    <!-- Load Google Maps API -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
+        searchBox.addEventListener('input', function() {
+            var query = searchBox.value;
+            if (query.length < 3) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            // Fetch autocomplete results from Nominatim API
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
+                .then(response => response.json())
+                .then(results => {
+                    resultsDiv.innerHTML = '';
+                    results.forEach(place => {
+                        var item = document.createElement('div');
+                        item.className = 'result-item';
+                        item.innerText = place.display_name;
+                        item.onclick = function() {
+                            addPin(place.lat, place.lon, place.display_name);
+                        };
+                        resultsDiv.appendChild(item);
+                    });
+                    resultsDiv.style.display = results.length ? 'block' : 'none';
+                });
+        });
+
+        // Function to add a pin when clicking a search result
+        function addPin(lat, lng, name) {
+            var marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(`<b>${name}</b>`).openPopup();
+            map.setView([lat, lng], 12);
+            resultsDiv.style.display = 'none';
+            searchBox.value = '';
+        }
+
+        // Hide search results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchBox.contains(e.target) && !resultsDiv.contains(e.target)) {
+                resultsDiv.style.display = 'none';
+            }
+        });
+
+        // Handle pinning manually when clicking on the map
+        map.on('click', function(e) {
+            var latlng = e.latlng;
+            var marker = L.marker(latlng).addTo(map);
+            marker.bindPopup(`<b>Pinned Location</b>`).openPopup();
+        });
+    </script>
 </body>
 </html>

@@ -18,21 +18,19 @@ from api_key import *
 from helpers import login_required
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'
-app.secret_key = os.getenv("SECRET_KEY", "fallback_secret_key")
+app.secret_key = 'minh173'
 
 # Configure session to use filesystem (instead of signed cookies)
+app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
-
-app.config['CLIENT_ID'] = CLIENT_ID
-app.config['CLIENT_SECRET'] = CLIENT_SECRET
-app.secret_key = 'minh173'
 
 # Connect to MongoDB
 client = MongoClient("mongodb+srv://minh:RlQqxKyuAhhhms4C@cluster0.hlktt.mongodb.net/user_data?retryWrites=true&w=majority")
 db = client["user_data"]
 users_collection = db["users"]
+pins_collection = db["pins"]
+friends_collection = db["friends"]
 
 # Google Authentication
 oauth = OAuth(app)
@@ -43,8 +41,6 @@ google = oauth.register(
     server_metadata_uri='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope' : 'openid profile email'},
 )
-
-# JWT secret key #TODO
 
 # Cloudinary config #TODO
 
@@ -188,6 +184,32 @@ def main():
 def logout():
     session.clear()
     return redirect("/")
+
+
+
+# Reference only DO NOT USE YET
+@app.route('/get_friends/<user_id>', methods=['GET'])
+def get_friends(user_id):
+    friends = list(friends_collection.find({"user_id": user_id}, {"_id": 0, "friend_id": 1, "friend_name": 1}))
+    return jsonify(friends)
+
+
+@app.route('/get_friend_pins/<friend_id>', methods=['GET'])
+def get_friend_pins(friend_id):
+    pins = list(pins_collection.find({"user_id": friend_id}, {"_id": 0}))
+    return jsonify(pins)
+
+
+@app.route('/add_pin', methods=['POST'])
+def add_pin():
+    data = request.json
+    pins_collection.insert_one(data)
+    return jsonify({"status": "success"})
+
+
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
