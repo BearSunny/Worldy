@@ -25,6 +25,11 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
+# Google Auth Configuration
+app.config['GOOGLE_CLIENT_ID'] = CLIENT_ID  
+app.config['GOOGLE_CLIENT_SECRET'] = CLIENT_SECRET  
+app.secret_key = 'minh17sunny3'  
+
 # Connect to MongoDB
 client = MongoClient("mongodb+srv://minh:RlQqxKyuAhhhms4C@cluster0.hlktt.mongodb.net/user_data?retryWrites=true&w=majority")
 db = client["user_data"]
@@ -36,9 +41,9 @@ friends_collection = db["friends"]
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET,
-    server_metadata_uri='https://accounts.google.com/.well-known/openid-configuration',
+    client_id=app.config['GOOGLE_CLIENT_ID'],
+    client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope' : 'openid profile email'},
 )
 
@@ -146,33 +151,37 @@ def google_login():
         redirect_uri = url_for('google_authorize', _external=True)
         return google.authorize_redirect(redirect_uri)
     except Exception as e:
-        flash("Error: !", str(e))
+        flash(f"Error during login: {str(e)}")
         return redirect(url_for('login'))
 
 
 @app.route("/authorize/google")
 def google_authorize():
     """Authorize users for Google"""
-    token = google.authorize_access_token()
-    userinfo_endpoint = google.server_metadata['userinfo_endpoint']
-    resp = google.get(userinfo_endpoint)
-    user_info = resp.json()
-    username = user_info['email']
+    try:
+        token = google.authorize_access_token()
+        userinfo_endpoint = google.server_metadata['userinfo_endpoint']
+        resp = google.get(userinfo_endpoint)
+        user_info = resp.json()
+        username = user_info['email']
 
-    # Connect to MongoDB
-    user = users_collection.find_one({"email" : username})
-    if not user:
-        new_user = {
-            "username": user_info.get("name", ""),
-            "email": user_info["email"],
-        }
-        users_collection.insert_one(new_user)
-        user = new_user
-        
-    session["username"] = username
-    session["oauth_token"] = token
+        # Connect to MongoDB
+        user = users_collection.find_one({"email" : username})
+        if not user:
+            new_user = {
+                "username": user_info.get("name", ""),
+                "email": user_info["email"],
+            }
+            users_collection.insert_one(new_user)
+            user = new_user
+            
+        session["username"] = username
+        session["oauth_token"] = token
 
-    return redirect("/main")
+        return redirect("/main")
+    except Exception as e:
+        flash(f"Authentication failed: {str(e)}")
+        return redirect("/login")
 
 
 @app.route("/main")
