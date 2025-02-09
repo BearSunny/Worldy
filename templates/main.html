@@ -62,6 +62,67 @@
         .custom-marker {
             filter: hue-rotate(140deg) brightness(1.5);
         }
+        /* Modal when click on pin */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 20px;
+        width: 80%;
+        max-width: 600px;
+        border-radius: 8px;
+        position: relative;
+        }
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 10px;
+            font-size: 28px;
+            cursor: pointer;
+        }
+        .photo-upload {
+        margin: 20px 0;
+        }
+        .blog-text {
+            width: 100%;
+            min-height: 200px;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        .post-button {
+        background-color: #4F64E9;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        }
+        .post-button:hover {
+            background-color: #4558d3;
+        }
+        .word-count {
+        color: #666;
+        font-size: 0.8em;
+        margin-top: 5px;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            margin: 10px 0;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -136,9 +197,23 @@
             }, 300); // Debounce delay
         });
 
+        // Modal handling
+        var modal = document.getElementById("pinModal");
+        var span = document.getElementsByClassName("close")[0];
+        var currentMarker = null;
+
         function addPin(lat, lng, name) {
             var marker = L.marker([lat, lng], {icon: redIcon}).addTo(map);
             marker.bindPopup(`<b>${name}</b>`).openPopup();
+
+            // Click on pin function
+            marker.on('click', function() {
+                currentMarker = marker;
+                document.getElementById('lat').value = lat;
+                document.getElementById('lng').value = lng;
+                modal.style.display = "block";
+            });
+
             map.setView([lat, lng], 12);
             resultsDiv.style.display = 'none';
             searchBox.value = '';
@@ -155,10 +230,100 @@
                 });
             });
 
-        // Handle manual pin placement
+        // Manually add pin and display modal
         map.on('click', function(e) {
             var marker = L.marker(e.latlng, {icon: redIcon}).addTo(map);
-            marker.bindPopup(`<b>Pinned Location</b>`).openPopup();
+            currentMarker = marker;          
+            document.getElementById('lat').value = e.latlng.lat;
+            document.getElementById('lng').value = e.latlng.lng;
+            modal.style.display = "block";
+
+            marker.on('click', function() {
+                currentMarker = marker;          
+                document.getElementById('lat').value = e.latlng.lat;
+                document.getElementById('lng').value = e.latlng.lng;
+                modal.style.display = "block";
+            });
+        });
+
+        // Close modal when clicking X
+        span.onclick = function() {
+            modal.style.display = "none";
+            if (currentMarker && !currentMarker.getPopup().getContent()) {
+                map.removeLayer(currentMarker);
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+                if (currentMarker && !currentMarker.getPopup().getContent()) {
+                    map.removeLayer(currentMarker);
+                }
+            }
+        }
+
+        // Word count
+        document.getElementById('blog').addEventListener('input', function() {
+            const words = this.value.trim().split(/\s+/).length;
+            const wordsRemaining = 1000 - words;
+            document.getElementById('wordCount').textContent = wordsRemaining >= 0 ? wordsRemaining : 0;
+            if (wordsRemaining < 0) {
+                this.value = this.value.split(/\s+/).slice(0, 1000).join(' ');
+            }
+        });
+        
+        // Handle form submission - relate to /create_post
+        document.getElementById('postForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // var cloudinaryUrl = 'https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/upload';
+            // var uploadPreset = 'YOUR_UPLOAD_PRESET';
+            const formData = new FormData(this);
+            
+            // TODO 1: Create Cloudinary form data for photo upload
+            // var cloudinaryFormData = ...
+            
+            // TODO 2: 
+            // Upload the photo to Cloudinary
+            fetch(cloudinaryUrl, {
+                method: 'POST',
+                body: cloudinaryFormData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.secure_url) {
+                // Add the Cloudinary URL to the form data
+                formData.append('photo_url', data.secure_url);
+
+                // Submit the form data to your server
+                return fetch('/create_post', {
+                    method: 'POST',
+                    body: formData
+                });
+                } else {
+                throw new Error('Photo upload failed');
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    modal.style.display = "none";
+                    if (currentMarker) {
+                        currentMarker.bindPopup(`<b>${data.title || 'New Post'}</b>`).openPopup();
+                    }
+                    // Reset form
+                    this.reset();
+                    document.getElementById('wordCount').textContent = '1000';
+                } else {
+                    alert('Error creating post: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error creating post');
+            });
         });
 
         // Hide search results when clicking outside
@@ -169,5 +334,26 @@
             }
         });
     </script>
+
+    <div id="pinModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Share your best moment</h2>
+            <form id="postForm" enctype="multipart/form-data">
+                <div class="photo-upload">
+                    <label for="photo">Upload a cute photo:</label>
+                    <input type="file" id="photo" name="photo" accept="image/*">
+                </div>
+                <div>
+                    <label for="blog">Write a small blog:</label>
+                    <textarea id="blog" name="blog" class="blog-text" maxlength="5000"></textarea>
+                    <div class="word-count">Words remaining: <span id="wordCount">1000</span></div>
+                </div>
+                <input type="hidden" id="lat" name="lat">
+                <input type="hidden" id="lng" name="lng">
+                <button type="submit" class="post-button">Share</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

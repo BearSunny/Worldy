@@ -34,8 +34,7 @@ app.secret_key = 'minh17sunny3'
 client = MongoClient("mongodb+srv://minh:RlQqxKyuAhhhms4C@cluster0.hlktt.mongodb.net/user_data?retryWrites=true&w=majority")
 db = client["user_data"]
 users_collection = db["users"]
-pins_collection = db["pins"]
-friends_collection = db["friends"]
+posts_collection = db["posts"] # Track uploaded photos and blogs
 
 # Google Authentication
 oauth = OAuth(app)
@@ -47,7 +46,7 @@ google = oauth.register(
     client_kwargs={'scope' : 'openid profile email'},
 )
 
-# Cloudinary config #TODO
+# Cloudinary config TODO
 
 @app.route("/")
 # This is the sign-up/login/login-with-google page
@@ -195,29 +194,37 @@ def logout():
     return redirect("/")
 
 
-
-# Reference only DO NOT USE YET
-@app.route('/get_friends/<user_id>', methods=['GET'])
-def get_friends(user_id):
-    friends = list(friends_collection.find({"user_id": user_id}, {"_id": 0, "friend_id": 1, "friend_name": 1}))
-    return jsonify(friends)
-
-
-@app.route('/get_friend_pins/<friend_id>', methods=['GET'])
-def get_friend_pins(friend_id):
-    pins = list(pins_collection.find({"user_id": friend_id}, {"_id": 0}))
-    return jsonify(pins)
-
-
-@app.route('/add_pin', methods=['POST'])
-def add_pin():
-    data = request.json
-    pins_collection.insert_one(data)
-    return jsonify({"status": "success"})
-
-
-
-
+#@app.route("/create_post", methods=["POST"])
+#def create_post():
+    #try:
+        # Get form data
+        #photo = request.files.get('photo')
+        #blog_text = request.form.get('blog')
+        #lat = request.form.get('lat')
+        #lng = request.form.get('lng')
+        
+        # Upload photo to Cloudinary
+        # upload_result = cloudinary.uploader.upload(photo)
+        # photo_url = upload_result.get('secure_url')
+        
+        # Create post in database
+        #post = #{
+            #"user_id": session.get("user_id"),  # If you're tracking users
+            #"photo_path": #photo_path,
+            #"blog_text": #blog_text,
+            #"location": {
+                #"lat": float(lat),
+                #"lng": float(lng)
+            #},
+            #"created_at": datetime.utcnow()
+        #}
+        
+        # Insert into MongoDB
+        #posts_collection.insert_one(post)
+        
+        #return jsonify({"success": True})
+    #except Exception as e:
+        #return jsonify({"success": False, "error": str(e)})
 
 
 if __name__ == "__main__":
