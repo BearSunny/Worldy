@@ -6,6 +6,7 @@ from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
 import datetime
 from datetime import timedelta
+from datetime import timezone
 import pymongo
 from pymongo import MongoClient
 import jwt
@@ -14,6 +15,8 @@ import cloudinary.uploader
 import requests
 from authlib.integrations.flask_client import OAuth
 from api_key import *
+import cloudinary
+from cloudinary.uploader import upload
 
 from helpers import login_required
 
@@ -46,7 +49,13 @@ google = oauth.register(
     client_kwargs={'scope' : 'openid profile email'},
 )
 
-# Cloudinary config TODO
+# Cloudinary config
+cloudinary.config(
+    cloud_name = "dqbpvc8a7",
+    api_key = "476672167887836",
+    api_secret = "WATdRqlyXx0DuelbjGRYAKyehNo",
+    secure = True
+)
 
 @app.route("/")
 # This is the sign-up/login/login-with-google page
@@ -185,6 +194,7 @@ def google_authorize():
 
 @app.route("/main")
 # This is the map visualization page
+@login_required
 def main():
     return render_template("main.html")
 
@@ -194,37 +204,57 @@ def logout():
     return redirect("/")
 
 
-#@app.route("/create_post", methods=["POST"])
-#def create_post():
-    #try:
-        # Get form data
-        #photo = request.files.get('photo')
-        #blog_text = request.form.get('blog')
-        #lat = request.form.get('lat')
-        #lng = request.form.get('lng')
+@app.route("/create_post", methods=["POST"])
+@login_required
+def create_post():
+    try:
+        user_id = session.get("user_id")
+        photo_url = request.form.get('secure_url')
         
-        # Upload photo to Cloudinary
-        # upload_result = cloudinary.uploader.upload(photo)
-        # photo_url = upload_result.get('secure_url')
+        if not photo_url:
+            photo = request.files.get('photo')
+            if photo:
+                upload_result = cloudinary.uploader.upload(photo)
+                photo_url = upload_result.get('secure_url')
+        else:
+            return jsonify({"success": False, "error": "No photo provided."}), 400
         
+        blog_text = request.form.get('blog')
+        lat = request.form.get('lat')
+        lng = request.form.get('lng')
+
+        existing_post = posts_collection.find_one({
+                "user_id": user_id,
+                "location.lat": lat,
+                "location.lng": lng
+        })
+
+        if existing_post:
+            return jsonify({"success": False, "error": "You have already posted at this location"}), 400
+        else:
         # Create post in database
-        #post = #{
-            #"user_id": session.get("user_id"),  # If you're tracking users
-            #"photo_path": #photo_path,
-            #"blog_text": #blog_text,
-            #"location": {
-                #"lat": float(lat),
-                #"lng": float(lng)
-            #},
-            #"created_at": datetime.utcnow()
-        #}
-        
-        # Insert into MongoDB
-        #posts_collection.insert_one(post)
-        
-        #return jsonify({"success": True})
-    #except Exception as e:
-        #return jsonify({"success": False, "error": str(e)})
+            post = {
+                "user_id": user_id,  # If you're tracking users
+                "photo_url": photo_url,
+                "blog_text": blog_text,
+                "location": {
+                    "lat": float(lat) if lat else None,
+                    "lng": float(lng) if lng else None
+                },
+                "created_at": datetime.datetime.now(timezone.utc) # Get the current date and time
+            }
+            # Insert into MongoDB
+            result = posts_collection.insert_one(post)
+            post["_id"] = str(result.inserted_id)
+
+        return jsonify({
+            "success": True,
+            "title": "New Memory",  
+            "blog_text": post["blog_text"],
+            "photo_url": post["photo_url"]
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 
 if __name__ == "__main__":

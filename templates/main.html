@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     <!-- Add Font Awesome for the search icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
     <style>
         #map {
             height: 100vh;
@@ -75,12 +76,13 @@
         }
         .modal-content {
         background-color: white;
-        margin: 10% auto;
+        margin: 5% auto;
         padding: 20px;
         width: 80%;
         max-width: 600px;
         border-radius: 8px;
         position: relative;
+        font-family: 'Russo One', sans-serif;
         }
         .close {
             position: absolute;
@@ -134,6 +136,27 @@
         <div id="autocomplete-results"></div>
     </div>
     <div id="map"></div>
+
+    <div id="pinModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Share your best moment</h2>
+            <form id="postForm" enctype="multipart/form-data">
+                <div class="photo-upload">
+                    <label for="photo">Upload a cute photo:</label>
+                    <input type="file" id="photo" name="photo" accept="image/*">
+                </div>
+                <div>
+                    <label for="blog">Write a small blog:</label>
+                    <textarea id="blog" name="blog" class="blog-text" maxlength="500"></textarea>
+                    <div class="word-count">Words remaining: <span id="wordCount">20</span></div>
+                </div>
+                <input type="hidden" id="lat" name="lat">
+                <input type="hidden" id="lng" name="lng">
+                <button type="submit" class="post-button" id="post-btn">Share</button>
+            </form>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
@@ -267,10 +290,10 @@
         // Word count
         document.getElementById('blog').addEventListener('input', function() {
             const words = this.value.trim().split(/\s+/).length;
-            const wordsRemaining = 1000 - words;
+            const wordsRemaining = 20 - words;
             document.getElementById('wordCount').textContent = wordsRemaining >= 0 ? wordsRemaining : 0;
             if (wordsRemaining < 0) {
-                this.value = this.value.split(/\s+/).slice(0, 1000).join(' ');
+                this.value = this.value.split(/\s+/).slice(0, 20).join(' ');
             }
         });
         
@@ -278,14 +301,15 @@
         document.getElementById('postForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // var cloudinaryUrl = 'https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/upload';
-            // var uploadPreset = 'YOUR_UPLOAD_PRESET';
+            var cloudinaryUrl = 'https://api.cloudinary.com/v1_1/dqbpvc8a7/upload';
+            var uploadPreset = 'worldy_photo';
             const formData = new FormData(this);
             
-            // TODO 1: Create Cloudinary form data for photo upload
-            // var cloudinaryFormData = ...
+            // Create Cloudinary form data for photo upload
+            var cloudinaryFormData = new FormData(this);
+            cloudinaryFormData.append('upload_preset', uploadPreset)
+            cloudinaryFormData.append('file', formData.get('photo'))
             
-            // TODO 2: 
             // Upload the photo to Cloudinary
             fetch(cloudinaryUrl, {
                 method: 'POST',
@@ -310,8 +334,17 @@
             .then(data => {
                 if (data.success) {
                     modal.style.display = "none";
+
+                    let popupContent = `<b>${data.title || 'New Memory'}</b>`;
+                    if (data.blog_text) {
+                        popupContent += `<p>${data.blog_text}</p>`;
+                    }
+                    if (data.photo_url) {
+                        popupContent += `<img src="${data.photo_url}" style="max-width:100%; height:auto;">`;
+                    }
+                    // Show modal's content once click on pin
                     if (currentMarker) {
-                        currentMarker.bindPopup(`<b>${data.title || 'New Post'}</b>`).openPopup();
+                        currentMarker.bindPopup(popupContent).openPopup();
                     }
                     // Reset form
                     this.reset();
@@ -334,26 +367,5 @@
             }
         });
     </script>
-
-    <div id="pinModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Share your best moment</h2>
-            <form id="postForm" enctype="multipart/form-data">
-                <div class="photo-upload">
-                    <label for="photo">Upload a cute photo:</label>
-                    <input type="file" id="photo" name="photo" accept="image/*">
-                </div>
-                <div>
-                    <label for="blog">Write a small blog:</label>
-                    <textarea id="blog" name="blog" class="blog-text" maxlength="5000"></textarea>
-                    <div class="word-count">Words remaining: <span id="wordCount">1000</span></div>
-                </div>
-                <input type="hidden" id="lat" name="lat">
-                <input type="hidden" id="lng" name="lng">
-                <button type="submit" class="post-button">Share</button>
-            </form>
-        </div>
-    </div>
 </body>
 </html>
