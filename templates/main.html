@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map Visualization</title>
+    <title>WORLDY - Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     <!-- Add Font Awesome for the search icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -91,8 +91,8 @@
             font-size: 28px;
             cursor: pointer;
         }
-        .photo-upload {
-        margin: 20px 0;
+        .photo-upload { 
+            margin: 20px 0;
         }
         .blog-text {
             width: 100%;
@@ -115,9 +115,9 @@
             background-color: #4558d3;
         }
         .word-count {
-        color: #666;
-        font-size: 0.8em;
-        margin-top: 5px;
+            color: #666;
+            font-size: 0.8em;
+            margin-top: 5px;
         }
         .preview-image {
             max-width: 100%;
@@ -125,6 +125,41 @@
             margin: 10px 0;
             display: none;
         }
+    </style>
+    <style>
+    .friend-selector-container {
+        position: absolute;
+        top: 20px;  /* Distance from top */
+        left: 50%;
+        transform: translateX(-50%);  /* Center horizontally */
+        z-index: 1000;  /* Stay above map */
+        width: auto;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        padding: 8px 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .friend-selector {
+        background: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .form-select {
+        min-width: 200px;
+        padding: 8px 12px;
+        border: 1px solid;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: 'Russo One', sans-serif;
+        background-color: gray;
+        cursor: pointer;
+        outline: none;
+    }
     </style>
 </head>
 <body>
@@ -244,7 +279,7 @@
         }
 
         // Display existing locations with red markers
-        fetch('/get_locations')
+        fetch('/get_post')
             .then(response => response.json())
             .then(data => {
                 data.forEach(user => {
@@ -342,13 +377,14 @@
                     if (data.photo_url) {
                         popupContent += `<img src="${data.photo_url}" style="max-width:100%; height:auto;">`;
                     }
-                    // Show modal's content once click on pin
-                    if (currentMarker) {
-                        currentMarker.bindPopup(popupContent).openPopup();
-                    }
+                    
+                    // Permanently load pins
+                    let newMarker = L.marker([data.lat, data.lng]).addTo(map)
+                    newMarker.bindPopup(popupContent)
+
                     // Reset form
                     this.reset();
-                    document.getElementById('wordCount').textContent = '1000';
+                    document.getElementById('wordCount').textContent = '20';
                 } else {
                     alert('Error creating post: ' + data.error);
                 }
@@ -359,6 +395,34 @@
             });
         });
 
+        // Reload pins
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch('/get_post')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        data.posts.forEach(post => {
+                            if (post.location && post.location.lat && post.location.lng) {
+                                let marker = L.marker([post.location.lat, post.location.lng], {icon: redIcon}).addTo(map);
+
+                                let popupContent = `<b>${post.title || 'New Memory'}</b>`;
+                                if (post.blog_text) {
+                                    popupContent += `<p>${post.blog_text}</p>`;
+                                }
+                                if (post.photo_url) {
+                                    popupContent += `<img src="${post.photo_url}" style="max-width:100%; height:auto;">`;
+                                }
+
+                                marker.bindPopup(popupContent);
+                            }
+                        });
+                    } else {
+                        console.error('Failed to load posts:', data.error);
+                    }
+                })
+                .catch(error => console.error('Error fetching posts:', error));
+        });
+
         // Hide search results when clicking outside
         document.addEventListener('click', function(e) {
             if (!searchBox.contains(e.target) && !resultsDiv.contains(e.target) && !e.target.closest('#search-toggle')) {
@@ -366,6 +430,78 @@
                 searchBox.style.display = 'none';
             }
         });
+    </script>
+
+    <div class="friend-selector-container">
+        <select id="friendSelect" class="form-select">
+            <option value="">Friends</option>
+            <!-- Friends will be populated here -->
+        </select>
+    </div>
+    <script>
+        // Function to load friends into dropdown
+        function loadFriends() {
+            fetch('/get_friends/' + '{{ session["user_id"] }}')
+                .then(response => response.json())
+                .then(data => {
+                    const friendSelect = document.getElementById('friendSelect');
+                    data.friends.forEach(friend => {
+                        const option = document.createElement('option');
+                        option.value = friend.id;
+                        option.textContent = friend.username;
+                        friendSelect.appendChild(option);
+                    });
+                });
+        }
+
+        // Function to clear existing pins from map
+        function clearPins() {
+            markersLayer.clearLayers(); 
+        }
+
+        // Function to load pins for a specific user
+        function loadUserPins(userId) {
+            clearPins();
+            
+            const url = userId ? `/get_user_pins/${userId}` : '/get_pins';
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const posts = userId ? data : data.posts; // Handle different response structures
+                    if (posts) {
+                        posts.forEach(post => {
+                            const lat = post.lat || (post.location && post.location.lat);
+                            const lng = post.lng || (post.location && post.location.lng);
+                            if (lat && lng) {
+                                let popupContent = `<b>${post.title || 'New Memory'}</b>`;
+                                if (post.blog_text) {
+                                    popupContent += `<p>${post.blog_text}</p>`;
+                                }
+                                if (post.photo_url) {
+                                    popupContent += `<img src="${post.photo_url}" style="max-width:100%; height:auto;">`;
+                                }
+
+                                let marker = L.marker([lat, lng], {icon: redIcon}).addTo(markersLayer);
+                                marker.bindPopup(popupContent);
+                            }
+                        });
+
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading pins:', error);
+                });
+            }
+
+        // Add change event listener to friend select
+        document.getElementById('friendSelect').addEventListener('change', (e) => {
+            loadUserPins(e.target.value);
+        });
+
+        // Load friends when page loads
+        loadFriends();
+        // Load your own pins initially
+        loadUserPins();
     </script>
 </body>
 </html>

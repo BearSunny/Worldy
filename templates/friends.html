@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WORLDY - Friends</title>
+    <style>
+        .friend-card {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+        }
+        .request-card {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+        }
+        .button {
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .accept {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+        }
+        .reject {
+            background-color: #f44336;
+            color: white;
+            border: none;
+        }
+        .error-message {
+            color: #f44336;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="friendSystem">
+        <h2>Friend Requests</h2>
+        <div id="friendRequests"></div>
+
+        <h2>Your Friends</h2>
+        <div id="friendsList"></div>
+
+        <h2>Send Friend Request</h2>
+        <input 
+            type="email" 
+            id="userSearch" 
+            placeholder="Enter friend's email..."
+            pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+        >
+        <div id="searchError" class="error-message"></div>
+        <div id="searchResults"></div>
+    </div>
+
+    <script>
+        const currentUserId = '{{ current_user_id }}';  // From Flask
+
+        // Load friend requests
+        function loadFriendRequests() {
+            fetch(`/get_friend_requests/${currentUserId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const requestsDiv = document.getElementById('friendRequests');
+                    requestsDiv.innerHTML = '';
+                    
+                    data.received_requests.forEach(request => {
+                        const requestCard = document.createElement('div');
+                        requestCard.className = 'request-card';
+                        requestCard.innerHTML = `
+                            <p>${request.email}</p>
+                            <button class="button accept" onclick="acceptRequest('${request.id}')">Accept</button>
+                            <button class="button reject" onclick="rejectRequest('${request.id}')">Reject</button>
+                        `;
+                        requestsDiv.appendChild(requestCard);
+                    });
+                });
+        }
+
+        // Load friends list
+        function loadFriends() {
+            fetch(`/get_friends/${currentUserId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const friendsDiv = document.getElementById('friendsList');
+                    friendsDiv.innerHTML = '';
+                    
+                    data.friends.forEach(friend => {
+                        const friendCard = document.createElement('div');
+                        friendCard.className = 'friend-card';
+                        friendCard.innerHTML = `
+                            <p>${friend.email}</p>
+                        `;
+                        friendsDiv.appendChild(friendCard);
+                    });
+                });
+        }
+
+        // Accept friend request
+        function acceptRequest(requesterId) {
+            fetch('/accept_friend_request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    accepter_id: currentUserId,
+                    requester_id: requesterId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadFriendRequests();
+                loadFriends();
+            });
+        }
+
+        // Reject friend request
+        function rejectRequest(requesterId) {
+            fetch('/reject_friend_request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    rejecter_id: currentUserId,
+                    requester_id: requesterId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadFriendRequests();
+            });
+        }
+
+        // Send friend request
+        function sendRequest(receiverId) {
+            fetch('/send_friend_request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sender_id: currentUserId,
+                    receiver_id: receiverId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('searchError').textContent = data.error;
+                } else {
+                    alert('Friend request sent!');
+                    document.getElementById('searchError').textContent = '';
+                }
+            });
+        }
+
+        // Search users by email
+        let searchTimeout;
+        document.getElementById('userSearch').addEventListener('input', (e) => {
+            const searchError = document.getElementById('searchError');
+            const email = e.target.value;
+            
+            // Clear previous error
+            searchError.textContent = '';
+            
+            // Basic email validation
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (email && !emailPattern.test(email)) {
+                searchError.textContent = 'Please enter a valid email address';
+                return;
+            }
+
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (email && emailPattern.test(email)) {
+                    fetch(`/search_users_by_email?email=${encodeURIComponent(email)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const resultsDiv = document.getElementById('searchResults');
+                            resultsDiv.innerHTML = '';
+                            
+                            if (data.error) {
+                                searchError.textContent = data.error;
+                                return;
+                            }
+                            
+                            data.users.forEach(user => {
+                                if (user.id !== currentUserId) {
+                                    const userCard = document.createElement('div');
+                                    userCard.className = 'friend-card';
+                                    userCard.innerHTML = `
+                                        <p>${user.email}</p>
+                                        <button class="button" onclick="sendRequest('${user.id}')">
+                                            Send Friend Request
+                                        </button>
+                                    `;
+                                    resultsDiv.appendChild(userCard);
+                                }
+                            });
+
+                            if (data.users.length === 0) {
+                                searchError.textContent = 'No user found with this email';
+                            }
+                        });
+                } else {
+                    document.getElementById('searchResults').innerHTML = '';
+                }
+            }, 300);
+        });
+
+        // Initial load
+        loadFriendRequests();
+        loadFriends();
+    </script>
+</body>
+</html>

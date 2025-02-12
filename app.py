@@ -9,6 +9,7 @@ from datetime import timedelta
 from datetime import timezone
 import pymongo
 from pymongo import MongoClient
+from bson import ObjectId
 import jwt
 import cloudinary
 import cloudinary.uploader
@@ -19,7 +20,6 @@ import cloudinary
 from cloudinary.uploader import upload
 
 from helpers import login_required
-
 app = Flask(__name__)
 app.secret_key = 'minh173'
 
@@ -31,7 +31,6 @@ Session(app)
 # Google Auth Configuration
 app.config['GOOGLE_CLIENT_ID'] = CLIENT_ID  
 app.config['GOOGLE_CLIENT_SECRET'] = CLIENT_SECRET  
-app.secret_key = 'minh17sunny3'  
 
 # Connect to MongoDB
 client = MongoClient("mongodb+srv://minh:RlQqxKyuAhhhms4C@cluster0.hlktt.mongodb.net/user_data?retryWrites=true&w=majority")
@@ -46,7 +45,9 @@ google = oauth.register(
     client_id=app.config['GOOGLE_CLIENT_ID'],
     client_secret=app.config['GOOGLE_CLIENT_SECRET'],
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope' : 'openid profile email'},
+    client_kwargs={'scope' :[ 
+                        'openid profile email', 
+                        'https://www.googleapis.com/auth/userinfo.email']}
 )
 
 # Cloudinary config
@@ -91,9 +92,14 @@ def login():
             session.permanent = True
             app.permanent_session_lifetime = timedelta(days=30)
         
-        return redirect("/main")
+        return redirect("/landing")
     else:
         return render_template("login.html")
+
+
+@app.route("/landing")
+def landing():
+    return render_template("landing.html")
 
 
 @app.route("/reset-password", methods=["GET", "POST"])
@@ -143,9 +149,15 @@ def signup():
         userDatabase = {
             "username" : username,
             "email" : email,
-            "password_hash" : hash_pass
+            "password_hash" : hash_pass,
+            "friends": [],
+            "friend_requests": {
+                "sent": [],
+                "received": []
+            }
         }
         users_collection.insert_one(userDatabase)
+        
         flash("Account created successfully! Please log in.")
         return redirect("/login") 
     else:
@@ -209,15 +221,15 @@ def logout():
 def create_post():
     try:
         user_id = session.get("user_id")
-        photo_url = request.form.get('secure_url')
+        photo_url = request.form.get('photo_url')
         
         if not photo_url:
             photo = request.files.get('photo')
             if photo:
                 upload_result = cloudinary.uploader.upload(photo)
                 photo_url = upload_result.get('secure_url')
-        else:
-            return jsonify({"success": False, "error": "No photo provided."}), 400
+            else:
+                return jsonify({"success": False, "error": "No photo provided."}), 400
         
         blog_text = request.form.get('blog')
         lat = request.form.get('lat')
@@ -225,8 +237,8 @@ def create_post():
 
         existing_post = posts_collection.find_one({
                 "user_id": user_id,
-                "location.lat": lat,
-                "location.lng": lng
+                "location.lat": float(lat),
+                "location.lng": float(lng)
         })
 
         if existing_post:
@@ -251,10 +263,233 @@ def create_post():
             "success": True,
             "title": "New Memory",  
             "blog_text": post["blog_text"],
-            "photo_url": post["photo_url"]
+            "photo_url": post["photo_url"],
+            "lat": post["location"]["lat"],
+            "lng": post["location"]["lng"]
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/get_post", methods=["GET"])
+@login_required
+def get_post():
+    try:
+        user_id = session.get("user_id")
+        posts = list(posts_collection.find({"user_id" : user_id}))
+
+        for post in posts:
+            post["_id"] = str(post["_id"])
+
+        return jsonify({"success": True, "posts" : posts})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/friends")
+@login_required
+def friends():
+    user_id = session.get("user_id")
+    return render_template("friends.html", current_user_id=user_id)
+
+
+@app.route('/search_users_by_email')
+@login_required
+def search_users_by_email():
+    email = request.args.get('email', '').lower().strip()
+    
+    if not email:
+        return jsonify({"error": "Please enter an email address"}), 400
+        
+    # Look for exact email match
+    user = users_collection.find_one(
+        {"email": email},
+        {"email": 1}
+    )
+    
+    if user:
+        return jsonify({
+            "users": [{
+                "id": str(user["_id"]),
+                "email": user["email"]
+            }]
+        })
+    
+    return jsonify({"users": []})
+
+
+@app.route("/send_friend_request", methods=["POST"])
+@login_required
+def send_friend_request():
+    data = request.json
+    sender_id = ObjectId(data.get("sender_id"))
+    receiver_id = ObjectId(data.get("receiver_id"))
+
+    # Check if users exist
+    sender = users_collection.find_one({"_id" : sender_id})
+    receiver = users_collection.find_one({"_id" : receiver_id})
+
+    if not sender or not receiver:
+        return jsonify({"error":"User not found"}), 404
+
+    # Check if they're already friends
+    if receiver_id in sender.get("friends", []):
+        return jsonify({"error":"Already friends"}), 400
+    
+    # Check if request already sent
+    if receiver_id in sender.get("friend_requests", {}).get("sent", []):
+        return jsonify({"error":"Request already sent!"}), 400
+
+    # Update sender's sent requests
+    users_collection.update_one(
+        {"_id" : sender_id},
+        {
+            "$push":{"friend_requests.sent" : receiver_id},
+            "$setOnInsert":{"friend_requests.received":[]}
+        },
+        upsert=True
+    )
+
+    # Update receiver's received request
+    users_collection.update_one(
+        {"_id":receiver_id},
+        {
+            "$push":{"friend_requests.received" : sender_id},
+            "$setOnInsert":{"friend_requests.sent":[]}
+        },
+        upsert=True
+    )
+
+    return jsonify({"message":"Request sent successfully"}), 200
+
+
+@app.route("/accept_friend_request", methods=["POST"])
+@login_required
+def accept_friend_request():
+    data = request.json
+    accepter_id = ObjectId(data.get("accepter_id"))
+    requester_id = ObjectId(data.get("requester_id"))
+
+    # Verify the request exists
+    accepter = users_collection.find_one({
+        "_id":accepter_id,
+        "friend_requests.received":requester_id
+    })
+    if not accepter:
+        return jsonify({"error":"Friend request not found"}), 404
+
+    # Add both users to each other's friends lists and remove the request
+    users_collection.update_one(
+        {"_id":accepter_id},
+        {
+            "$push": {"friends":requester_id},
+            "$pull": {"friend_requests.received":requester_id}
+        }
+    )
+
+    users_collection.update_one(
+        {"_id":requester_id},
+        {
+            "$push": {"friends":accepter_id},
+            "$pull": {"friend_requests.sent":accepter_id}
+        }
+    )
+
+    return jsonify({"message":"Friend request accepted"}), 200
+
+
+@app.route("/reject_friend_request", methods=["POST"])
+@login_required
+def reject_friend_request():
+    data = request.json
+    rejecter_id = ObjectId(data.get("rejecter_id"))
+    requester_id = ObjectId(data.get("requester_id"))
+
+    # Add both users to each other's friends lists and remove the request
+    users_collection.update_one(
+        {"_id":rejecter_id},
+        {
+            "$pull": {"friend_requests.received":requester_id}
+        }
+    )
+
+    users_collection.update_one(
+        {"_id":requester_id},
+        {
+            "$pull": {"friend_requests.sent":rejecter_id}
+        }
+    )
+
+    return jsonify({"message":"Friend request rejected"}), 200
+
+
+@app.route("/get_friends/<user_id>", methods=["GET"])
+@login_required
+def get_friends(user_id):
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    # Get friend details
+    friends = list(users_collection.find(
+        {"_id": {"$in": user.get("friends", [])}},
+        {"username": 1}
+    ))
+    
+    return jsonify({
+        "friends": [
+            {
+                "id": str(friend["_id"]),
+                "username": friend["username"]
+            }
+            for friend in friends
+        ]
+    }), 200
+
+
+@app.route("/get_friend_requests/<user_id>", methods=["GET"])
+@login_required
+def get_friend_requests(user_id):
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    # Get details of users who sent requests
+    received_requests = list(users_collection.find(
+        {"_id": {"$in": user.get("friend_requests", {}).get("received", [])}},
+        {"email": 1}
+    ))
+    
+    return jsonify({
+        "received_requests": [
+            {
+                "id": str(request["_id"]),
+                "email": request["email"]
+            }
+            for request in received_requests
+        ]
+    }), 200
+
+
+@app.route("/get_user_pins/<user_id>")
+@login_required
+def get_user_pins(user_id):
+    # Ensure the requester is friends with this user
+    current_user = users_collection.find_one({"_id": ObjectId(session["user_id"])})
+    if str(user_id) not in [str(friend_id) for friend_id in current_user.get("friends", [])]:
+        return jsonify({"error": "Not authorized to view this user's pins"}), 403
+
+    user_pins = posts_collection.find({"user_id": user_id})
+    pins = []
+    for pin in user_pins:
+        pins.append({
+            "id": str(pin["_id"]),
+            "lat": pin["location"]["lat"],
+            "lng": pin["location"]["lng"],
+            "blog_text": pin.get("blog_text"),
+            "photo_url": pin.get("photo_url")
+        })
+    return jsonify({"posts":pins})
 
 
 if __name__ == "__main__":
