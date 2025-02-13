@@ -47,7 +47,8 @@ google = oauth.register(
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope' :[ 
                         'openid profile email', 
-                        'https://www.googleapis.com/auth/userinfo.email']}
+                        'https://www.googleapis.com/auth/userinfo.email'],
+                    'prompt': 'select_account'}
 )
 
 # Cloudinary config
@@ -98,6 +99,7 @@ def login():
 
 
 @app.route("/landing")
+@login_required
 def landing():
     return render_template("landing.html")
 
@@ -168,8 +170,9 @@ def signup():
 def google_login():
     """Log_in using Google"""
     try:
+        session.clear()
         redirect_uri = url_for('google_authorize', _external=True)
-        return google.authorize_redirect(redirect_uri)
+        return oauth.google.authorize_redirect(redirect_uri)
     except Exception as e:
         flash(f"Error during login: {str(e)}")
         return redirect(url_for('login'))
@@ -179,34 +182,42 @@ def google_login():
 def google_authorize():
     """Authorize users for Google"""
     try:
-        token = google.authorize_access_token()
+        token = oauth.google.authorize_access_token()
         userinfo_endpoint = google.server_metadata['userinfo_endpoint']
         resp = google.get(userinfo_endpoint)
         user_info = resp.json()
         username = user_info['email']
+        email = user_info['email']
 
         # Connect to MongoDB
-        user = users_collection.find_one({"email" : username})
+        user = users_collection.find_one({"email" : email})
+
         if not user:
             new_user = {
-                "username": user_info.get("name", ""),
-                "email": user_info["email"],
+                "username": user_info.get("name", email.split('@')[0]),
+                "email": email,
+                "friends": [],
+                "friend_requests": {
+                    "sent": [],
+                    "received": []
+                }
             }
-            users_collection.insert_one(new_user)
-            user = new_user
+            result = users_collection.insert_one(new_user)
+            user_id = str(result.inserted_id)
+        else:
+            user_id = str(user["_id"])
             
-        session["username"] = username
-        session["oauth_token"] = token
+        session["user_id"] = user_id
 
-        return redirect("/main")
+        return redirect("/landing")
     except Exception as e:
         flash(f"Authentication failed: {str(e)}")
         return redirect("/login")
 
 
 @app.route("/main")
-# This is the map visualization page
 @login_required
+# This is the map visualization page
 def main():
     return render_template("main.html")
 
