@@ -379,7 +379,7 @@
                     }
                     
                     // Permanently load pins
-                    let newMarker = L.marker([data.lat, data.lng]).addTo(map)
+                    let newMarker = L.marker([data.lat, data.lng], {icon: redIcon}).addTo(map)
                     newMarker.bindPopup(popupContent)
 
                     // Reset form
