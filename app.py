@@ -444,14 +444,15 @@ def get_friends(user_id):
     # Get friend details
     friends = list(users_collection.find(
         {"_id": {"$in": user.get("friends", [])}},
-        {"username": 1}
+        {"username": 1, "email":1},
     ))
     
     return jsonify({
         "friends": [
             {
                 "id": str(friend["_id"]),
-                "username": friend["username"]
+                "username": friend["username"],
+                "email": friend["email"]
             }
             for friend in friends
         ]
