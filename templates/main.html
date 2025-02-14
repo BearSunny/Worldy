@@ -439,6 +439,7 @@
             <!-- Friends will be populated here -->
         </select>
     </div>
+
     <script>
         // Function to load friends into dropdown
         function loadFriends() {
@@ -496,13 +497,16 @@
 
         // Add change event listener to friend select
         document.getElementById('friendSelect').addEventListener('change', (e) => {
-            loadUserPins(e.target.value);
+            const userId = e.target.value;
+            if (!userId) {
+                loadUserPins();
+            } else {
+                loadUserPins(e.target.value);
+            }
         });
 
         // Load friends when page loads
         loadFriends();
-        // Load your own pins initially
-        loadUserPins();
     </script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 # Set up Flask application
 import os
+from dotenv import load_dotenv
+load_dotenv("api_key.env")
 from flask import Flask, flash, request, jsonify, render_template, redirect, url_for, session
 from flask_session import Session
 from flask_cors import CORS
@@ -15,13 +17,12 @@ import cloudinary
 import cloudinary.uploader
 import requests
 from authlib.integrations.flask_client import OAuth
-from api_key import *
 import cloudinary
 from cloudinary.uploader import upload
 
 from helpers import login_required
 app = Flask(__name__)
-app.secret_key = 'minh173'
+app.secret_key = os.environ.get("SECRET_KEY")
 
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_PERMANENT"] = False
@@ -29,11 +30,11 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Google Auth Configuration
-app.config['GOOGLE_CLIENT_ID'] = CLIENT_ID  
-app.config['GOOGLE_CLIENT_SECRET'] = CLIENT_SECRET  
+app.config['GOOGLE_CLIENT_ID'] = os.environ.get("CLIENT_ID") 
+app.config['GOOGLE_CLIENT_SECRET'] = os.environ.get("CLIENT_SECRET")
 
 # Connect to MongoDB
-client = MongoClient("mongodb+srv://minh:RlQqxKyuAhhhms4C@cluster0.hlktt.mongodb.net/user_data?retryWrites=true&w=majority")
+client = MongoClient(os.environ.get("MONGODB_URI"))
 db = client["user_data"]
 users_collection = db["users"]
 posts_collection = db["posts"] # Track uploaded photos and blogs
@@ -53,9 +54,9 @@ google = oauth.register(
 
 # Cloudinary config
 cloudinary.config(
-    cloud_name = "dqbpvc8a7",
-    api_key = "476672167887836",
-    api_secret = "WATdRqlyXx0DuelbjGRYAKyehNo",
+    cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key = os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret = os.environ.get("CLOUDINARY_API_SECRET"),
     secure = True
 )
 
