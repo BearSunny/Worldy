@@ -193,6 +193,15 @@
         </div>
     </div>
 
+    
+    <div class="friend-selector-container">
+        <label for="friendSelect" style="font-family: 'Russo One', sans-serif; font-size: 16px; margin-right: 8px;">Friends</label>
+        <select id="friendSelect" class="form-select">
+            <option value="">me</option>
+            <!-- Friends will be populated here -->
+        </select>
+    </div>
+
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
         var map = L.map('map').setView([20, 0], 2);
@@ -259,6 +268,7 @@
         var modal = document.getElementById("pinModal");
         var span = document.getElementsByClassName("close")[0];
         var currentMarker = null;
+        let canAddPin = true;
 
         function addPin(lat, lng, name) {
             var marker = L.marker([lat, lng], {icon: redIcon}).addTo(map);
@@ -290,6 +300,7 @@
 
         // Manually add pin and display modal
         map.on('click', function(e) {
+            if (!canAddPin) return;
             var marker = L.marker(e.latlng, {icon: redIcon}).addTo(map);
             currentMarker = marker;          
             document.getElementById('lat').value = e.latlng.lat;
@@ -432,14 +443,6 @@
         });
     </script>
 
-    <div class="friend-selector-container">
-        <label for="friendSelect" style="font-family: 'Russo One', sans-serif; font-size: 16px; margin-right: 8px;">Friends</label>
-        <select id="friendSelect" class="form-select">
-            <option value="">me</option>
-            <!-- Friends will be populated here -->
-        </select>
-    </div>
-
     <script>
         // Function to load friends into dropdown
         function loadFriends() {
@@ -464,12 +467,12 @@
         // Function to load pins for a specific user
         function loadUserPins(userId) {
             clearPins();
-            
-            const url = userId ? `/get_user_pins/${userId}` : '/get_pins';
+
+            const url = userId ?  `/get_user_pins/${userId}` : `/get_post`;
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    const posts = userId ? data : data.posts; // Handle different response structures
+                    const posts = userId ? data : data.posts;  // Handle different response structures
                     if (posts) {
                         posts.forEach(post => {
                             const lat = post.lat || (post.location && post.location.lat);
@@ -498,15 +501,13 @@
         // Add change event listener to friend select
         document.getElementById('friendSelect').addEventListener('change', (e) => {
             const userId = e.target.value;
-            if (!userId) {
-                loadUserPins();
-            } else {
-                loadUserPins(e.target.value);
-            }
+            canAddPin = !userId;
+            loadUserPins(userId);
         });
 
         // Load friends when page loads
         loadFriends();
+        loadUserPins();
     </script>
 </body>
 </html>
