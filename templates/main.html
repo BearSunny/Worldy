@@ -180,16 +180,19 @@
 
         /* Friend selector */
         .friend-selector-container {
-            position: absolute;
-            top: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 15px 25px;
-            border-radius: 25px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: static;
+            top: auto;
+            left: auto;
+            transform: none;
+            z-index: auto;
+            background: transparent;
+            backdrop-filter: none;
+            padding: 0 20px;
+            border-radius: 0;
+            box-shadow: none;
+            display: flex;
+            align-items: center;
+            height: 100%;
         }
 
         .friend-selector-label {
@@ -465,6 +468,12 @@
     <!-- Header Bar -->
     <div class="header-bar">
         <div class="logo">WORLDY</div>
+        <!--Friends' selector-->
+        <div class="friend-selector-container">
+            <select id="friendSelect" class="form-select">
+                <option value="">My Pins</option>
+            </select>
+        </div>
         <div class="nav-buttons">
             <a href="/friends" class="nav-btn friends-btn">
                 <i class="fas fa-users"></i>
@@ -488,16 +497,6 @@
         </button>
         <input type="text" class="search-box" id="search-box" placeholder="Search for a location...">
         <div class="autocomplete-results" id="autocomplete-results"></div>
-    </div>
-
-    <!-- Friend Selector -->
-    <div class="friend-selector-container">
-        <label for="friendSelect" class="friend-selector-label">
-            <i class="fas fa-filter"></i> View:
-        </label>
-        <select id="friendSelect" class="form-select">
-            <option value="">My Pins</option>
-        </select>
     </div>
 
     <!-- Map -->
