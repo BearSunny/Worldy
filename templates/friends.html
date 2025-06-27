@@ -89,11 +89,12 @@
         .search-container {
             background: white;
             border-radius: 15px;
-            padding: 25px;
+            padding: 30px;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
             margin-bottom: 30px;
             border: 2px solid #f0f0f0;
             transition: all 0.3s ease;
+            position: relative;
         }
 
         .search-container:focus-within {
@@ -101,15 +102,21 @@
             box-shadow: 0 8px 25px rgba(79, 100, 233, 0.2);
         }
 
+        .search-input-wrapper {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
         .search-input {
             width: 100%;
-            padding: 15px 20px;
+            padding: 18px 24px;
             border: 2px solid #e0e0e0;
             border-radius: 12px;
             font-size: 1rem;
             font-family: 'Russo One', sans-serif;
             transition: all 0.3s ease;
             background: #fafafa;
+            box-sizing: border-box;
         }
 
         .search-input:focus {
@@ -117,6 +124,11 @@
             border-color: #4F64E9;
             background: white;
             box-shadow: 0 0 0 3px rgba(79, 100, 233, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: #999;
+            font-size: 0.95rem;
         }
 
         .cards-grid {
@@ -341,6 +353,14 @@
             .header h1 {
                 font-size: 2rem;
             }
+
+            .search-container {
+                padding: 20px;
+            }
+
+            .search-input {
+                padding: 15px 20px;
+            }
         }
     </style>
 </head>
@@ -387,13 +407,15 @@
                     Add New Friends
                 </h2>
                 <div class="search-container">
-                    <input 
-                        type="email" 
-                        id="userSearch" 
-                        class="search-input"
-                        placeholder="Enter friend's email address..."
-                        pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
-                    >
+                    <div class="search-input-wrapper">
+                        <input 
+                            type="email" 
+                            id="userSearch" 
+                            class="search-input"
+                            placeholder="Enter friend's email address..."
+                            pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                        >
+                    </div>
                     <div id="searchError" class="error-message"></div>
                     <div id="searchSuccess" class="success-message"></div>
                 </div>
