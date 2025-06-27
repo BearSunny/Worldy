@@ -5,65 +5,223 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WORLDY - Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-    <!-- Add Font Awesome for the search icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Holtwood+One+SC&family=Rubik+Bubbles&display=swap" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Russo One', sans-serif;
+            overflow: hidden;
+        }
+
         #map {
             height: 100vh;
             width: 100%;
+            position: relative;
         }
+
+        /* Header with logo and navigation */
+        .header-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: linear-gradient(135deg, rgba(79, 100, 233, 0.95) 0%, rgba(102, 126, 234, 0.95) 100%);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-family: 'Rubik Bubbles', cursive;
+            font-size: 1.5rem;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-family: 'Russo One', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-btn.friends-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            border-color: #4CAF50;
+        }
+
+        .nav-btn.friends-btn:hover {
+            background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+        }
+
+        .nav-btn.logout-btn {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            border-color: #f44336;
+        }
+
+        .nav-btn.logout-btn:hover {
+            background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+        }
+
+        /* Search container */
         .search-container {
             position: absolute;
-            left: 18.8px;
-            top: 95px;
+            left: 30px;
+            top: 90px;
             z-index: 1000;
         }
-        #search-toggle {
+
+        .search-toggle {
             background: white;
-            border: 2px solid rgba(0,0,0,0.2);
-            border-radius: 4px;
-            width: 34px;
-            height: 34px;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            color: #4F64E9;
+            font-size: 1.2rem;
         }
-        #search-box {
+
+        .search-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .search-box {
             display: none;
-            width: 250px;
-            padding: 8px;
-            border-radius: 4px;
-            border: 2px solid rgba(0,0,0,0.2);
-            margin-top: 5px;
+            width: 300px;
+            padding: 15px 20px;
+            border-radius: 25px;
+            border: none;
+            margin-top: 10px;
             background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-family: 'Russo One', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
         }
-        #autocomplete-results {
+
+        .search-box::placeholder {
+            color: #999;
+        }
+
+        .autocomplete-results {
             position: absolute;
             left: 0;
-            top: 80px;
-            width: 250px;
+            top: 85px;
+            width: 300px;
             background: white;
-            border: 2px solid rgba(0,0,0,0.2);
-            border-radius: 4px;
-            max-height: 200px;
+            border-radius: 15px;
+            max-height: 250px;
             overflow-y: auto;
             display: none;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
         }
+
         .result-item {
-            padding: 8px;
+            padding: 15px 20px;
             cursor: pointer;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+            font-size: 0.9rem;
         }
+
         .result-item:hover {
-            background: #f0f0f0;
+            background: #f8f9ff;
         }
-        /* Custom marker color */
+
+        .result-item:last-child {
+            border-bottom: none;
+            border-radius: 0 0 15px 15px;
+        }
+
+        .result-item:first-child {
+            border-radius: 15px 15px 0 0;
+        }
+
+        /* Friend selector */
+        .friend-selector-container {
+            position: absolute;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .friend-selector-label {
+            font-family: 'Russo One', sans-serif;
+            font-size: 0.9rem;
+            margin-right: 15px;
+            color: #333;
+        }
+
+        .form-select {
+            min-width: 200px;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-family: 'Russo One', sans-serif;
+            background-color: white;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-select:focus {
+            border-color: #4F64E9;
+            box-shadow: 0 0 0 3px rgba(79, 100, 233, 0.1);
+        }
+
+        /* Custom marker styles */
         .custom-marker {
             filter: hue-rotate(140deg) brightness(1.5);
         }
-        /* Modal when click on pin */
+
+        /* Modal styles */
         .modal {
             display: none;
             position: fixed;
@@ -72,138 +230,330 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
         }
+
         .modal-content {
-        background-color: white;
-        margin: 5% auto;
-        padding: 20px;
-        width: 80%;
-        max-width: 600px;
-        border-radius: 8px;
-        position: relative;
-        font-family: 'Russo One', sans-serif;
+            background: white;
+            margin: 3% auto;
+            padding: 40px;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 20px;
+            position: relative;
+            font-family: 'Russo One', sans-serif;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
         }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-header h2 {
+            font-family: 'Holtwood One SC', serif;
+            font-size: 2rem;
+            color: #4F64E9;
+            margin-bottom: 10px;
+        }
+
+        .modal-header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
         .close {
             position: absolute;
-            right: 20px;
-            top: 10px;
-            font-size: 28px;
+            right: 25px;
+            top: 25px;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #f44336;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
             cursor: pointer;
         }
-        .photo-upload { 
-            margin: 20px 0;
-        }
-        .blog-text {
+
+        .file-input-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #4F64E9 0%, #667eea 100%);
+            color: white;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
             width: 100%;
-            min-height: 200px;
-            margin: 20px 0;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+        }
+
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 100, 233, 0.3);
+        }
+
+        .blog-textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
             resize: vertical;
+            font-family: 'Russo One', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s ease;
         }
-        .post-button {
-        background-color: #4F64E9;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
+
+        .blog-textarea:focus {
+            border-color: #4F64E9;
+            box-shadow: 0 0 0 3px rgba(79, 100, 233, 0.1);
         }
-        .post-button:hover {
-            background-color: #4558d3;
-        }
+
         .word-count {
+            text-align: right;
             color: #666;
-            font-size: 0.8em;
-            margin-top: 5px;
+            font-size: 0.8rem;
+            margin-top: 8px;
         }
-        .preview-image {
-            max-width: 100%;
-            max-height: 300px;
-            margin: 10px 0;
-            display: none;
+
+        .word-count.warning {
+            color: #ff9800;
         }
-    </style>
-    <style>
-    .friend-selector-container {
-        position: absolute;
-        top: 20px;  /* Distance from top */
-        left: 50%;
-        transform: translateX(-50%);  /* Center horizontally */
-        z-index: 1000;  /* Stay above map */
-        width: auto;
-        background: rgba(255, 255, 255, 0.8);
-        display: flex;
-        justify-content: center;
-        padding: 8px 12px;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
 
-    .friend-selector {
-        background: white;
-        padding: 8px 16px;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
+        .word-count.danger {
+            color: #f44336;
+        }
 
-    .form-select {
-        min-width: 200px;
-        padding: 8px 12px;
-        border: 1px solid;
-        border-radius: 4px;
-        font-size: 14px;
-        font-family: 'Russo One', sans-serif;
-        background-color: gray;
-        cursor: pointer;
-        outline: none;
-    }
+        .submit-btn {
+            width: 100%;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: 'Russo One', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .header-bar {
+                padding: 0 15px;
+                height: 60px;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .nav-buttons {
+                gap: 10px;
+            }
+
+            .nav-btn {
+                padding: 8px 15px;
+                font-size: 0.8rem;
+            }
+
+            .search-container {
+                left: 15px;
+                top: 80px;
+            }
+
+            .search-box,
+            .autocomplete-results {
+                width: 250px;
+            }
+
+            .friend-selector-container {
+                top: 80px;
+                padding: 10px 15px;
+            }
+
+            .form-select {
+                min-width: 150px;
+                padding: 8px 12px;
+            }
+
+            .modal-content {
+                margin: 10% auto;
+                padding: 25px;
+                width: 95%;
+            }
+
+            .modal-header h2 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <div class="search-container">
-        <div id="search-toggle">
-            <i class="fas fa-search"></i>
+    <!-- Header Bar -->
+    <div class="header-bar">
+        <div class="logo">WORLDY</div>
+        <div class="nav-buttons">
+            <a href="/friends" class="nav-btn friends-btn">
+                <i class="fas fa-users"></i>
+                Friends
+            </a>
+            <a href="/landing" class="nav-btn">
+                <i class="fas fa-home"></i>
+                Home
+            </a>
+            <a href="/logout" class="nav-btn logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
         </div>
-        <input type="text" id="search-box" placeholder="Search for a location...">
-        <div id="autocomplete-results"></div>
     </div>
+
+    <!-- Search Container -->
+    <div class="search-container">
+        <button class="search-toggle" id="search-toggle">
+            <i class="fas fa-search"></i>
+        </button>
+        <input type="text" class="search-box" id="search-box" placeholder="Search for a location...">
+        <div class="autocomplete-results" id="autocomplete-results"></div>
+    </div>
+
+    <!-- Friend Selector -->
+    <div class="friend-selector-container">
+        <label for="friendSelect" class="friend-selector-label">
+            <i class="fas fa-filter"></i> View:
+        </label>
+        <select id="friendSelect" class="form-select">
+            <option value="">My Pins</option>
+        </select>
+    </div>
+
+    <!-- Map -->
     <div id="map"></div>
 
+    <!-- Pin Modal -->
     <div id="pinModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2>Share your best moment</h2>
+            <div class="modal-header">
+                <h2>Share Your Memory</h2>
+                <p>Capture this moment with a photo and story</p>
+            </div>
             <form id="postForm" enctype="multipart/form-data">
-                <div class="photo-upload">
-                    <label for="photo">Upload a cute photo:</label>
-                    <input type="file" id="photo" name="photo" accept="image/*">
+                <div class="form-group">
+                    <label for="photo">
+                        <i class="fas fa-camera"></i> Upload Photo
+                    </label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="photo" name="photo" accept="image/*" class="file-input">
+                        <div class="file-input-button">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>Choose Photo</span>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label for="blog">Write a small blog:</label>
-                    <textarea id="blog" name="blog" class="blog-text" maxlength="500"></textarea>
-                    <div class="word-count">Words remaining: <span id="wordCount">20</span></div>
+                
+                <div class="form-group">
+                    <label for="blog">
+                        <i class="fas fa-pen"></i> Share Your Story
+                    </label>
+                    <textarea 
+                        id="blog" 
+                        name="blog" 
+                        class="blog-textarea" 
+                        maxlength="500"
+                        placeholder="Tell us about this special moment..."
+                    ></textarea>
+                    <div class="word-count">
+                        Words remaining: <span id="wordCount">20</span>
+                    </div>
                 </div>
+                
                 <input type="hidden" id="lat" name="lat">
                 <input type="hidden" id="lng" name="lng">
-                <button type="submit" class="post-button" id="post-btn">Share</button>
+                
+                <button type="submit" class="submit-btn" id="post-btn">
+                    <i class="fas fa-share"></i>
+                    Share Memory
+                </button>
             </form>
         </div>
     </div>
 
-    
-    <div class="friend-selector-container">
-        <label for="friendSelect" style="font-family: 'Russo One', sans-serif; font-size: 16px; margin-right: 8px;">Friends</label>
-        <select id="friendSelect" class="form-select">
-            <option value="">me</option>
-            <!-- Friends will be populated here -->
-        </select>
-    </div>
-
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
+        // Initialize map
         var map = L.map('map').setView([20, 0], 2);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -222,23 +572,25 @@
             shadowSize: [41, 41]
         });
 
-        // Toggle search box
-        document.getElementById('search-toggle').addEventListener('click', function() {
-            var searchBox = document.getElementById('search-box');
-            searchBox.style.display = searchBox.style.display === 'none' || searchBox.style.display === '' ? 'block' : 'none';
-            if (searchBox.style.display === 'block') {
+        // Search functionality
+        const searchToggle = document.getElementById('search-toggle');
+        const searchBox = document.getElementById('search-box');
+        const resultsDiv = document.getElementById('autocomplete-results');
+        let searchTimeout;
+
+        searchToggle.addEventListener('click', function() {
+            const isVisible = searchBox.style.display === 'block';
+            searchBox.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) {
                 searchBox.focus();
+            } else {
+                resultsDiv.style.display = 'none';
             }
         });
 
-        // Improved search functionality with debouncing
-        var searchBox = document.getElementById('search-box');
-        var resultsDiv = document.getElementById('autocomplete-results');
-        var searchTimeout;
-
         searchBox.addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            var query = searchBox.value;
+            const query = searchBox.value;
             
             if (query.length < 3) {
                 resultsDiv.style.display = 'none';
@@ -251,30 +603,35 @@
                     .then(results => {
                         resultsDiv.innerHTML = '';
                         results.forEach(place => {
-                            var item = document.createElement('div');
+                            const item = document.createElement('div');
                             item.className = 'result-item';
-                            item.innerText = place.display_name;
+                            item.innerHTML = `
+                                <div style="font-weight: 500;">${place.display_name.split(',')[0]}</div>
+                                <div style="font-size: 0.8rem; color: #666; margin-top: 2px;">${place.display_name}</div>
+                            `;
                             item.onclick = function() {
                                 addPin(place.lat, place.lon, place.display_name);
                             };
                             resultsDiv.appendChild(item);
                         });
                         resultsDiv.style.display = results.length ? 'block' : 'none';
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
                     });
-            }, 300); // Debounce delay
+            }, 300);
         });
 
         // Modal handling
-        var modal = document.getElementById("pinModal");
-        var span = document.getElementsByClassName("close")[0];
-        var currentMarker = null;
+        const modal = document.getElementById("pinModal");
+        const span = document.getElementsByClassName("close")[0];
+        let currentMarker = null;
         let canAddPin = true;
 
         function addPin(lat, lng, name) {
-            var marker = L.marker([lat, lng], {icon: redIcon}).addTo(map);
+            const marker = L.marker([lat, lng], {icon: redIcon}).addTo(map);
             marker.bindPopup(`<b>${name}</b>`).openPopup();
 
-            // Click on pin function
             marker.on('click', function() {
                 currentMarker = marker;
                 document.getElementById('lat').value = lat;
@@ -288,20 +645,10 @@
             searchBox.style.display = 'none';
         }
 
-        // Display existing locations with red markers
-        fetch('/get_post')
-            .then(response => response.json())
-            .then(data => {
-                data.forEach(user => {
-                    var marker = L.marker([user.lat, user.lng], {icon: redIcon}).addTo(markersLayer);
-                    marker.bindPopup(`<b>${user.name}</b>`);
-                });
-            });
-
-        // Manually add pin and display modal
+        // Map click to add pin
         map.on('click', function(e) {
             if (!canAddPin) return;
-            var marker = L.marker(e.latlng, {icon: redIcon}).addTo(map);
+            const marker = L.marker(e.latlng, {icon: redIcon}).addTo(map);
             currentMarker = marker;          
             document.getElementById('lat').value = e.latlng.lat;
             document.getElementById('lng').value = e.latlng.lng;
@@ -315,7 +662,7 @@
             });
         });
 
-        // Close modal when clicking X
+        // Close modal
         span.onclick = function() {
             modal.style.display = "none";
             if (currentMarker && !currentMarker.getPopup().getContent()) {
@@ -323,7 +670,6 @@
             }
         }
 
-        // Close modal when clicking outside
         window.onclick = function(event) {
             if (event.target == modal) {
                 modal.style.display = "none";
@@ -333,30 +679,53 @@
             }
         }
 
+        // File input handling
+        document.getElementById('photo').addEventListener('change', function(e) {
+            const button = document.querySelector('.file-input-button span');
+            if (e.target.files.length > 0) {
+                button.textContent = e.target.files[0].name;
+            } else {
+                button.textContent = 'Choose Photo';
+            }
+        });
+
         // Word count
         document.getElementById('blog').addEventListener('input', function() {
-            const words = this.value.trim().split(/\s+/).length;
+            const words = this.value.trim().split(/\s+/).filter(word => word.length > 0).length;
             const wordsRemaining = 20 - words;
-            document.getElementById('wordCount').textContent = wordsRemaining >= 0 ? wordsRemaining : 0;
+            const countElement = document.getElementById('wordCount');
+            const countContainer = countElement.parentElement;
+            
+            countElement.textContent = Math.max(0, wordsRemaining);
+            
+            countContainer.className = 'word-count';
+            if (wordsRemaining < 5) {
+                countContainer.classList.add('warning');
+            }
             if (wordsRemaining < 0) {
-                this.value = this.value.split(/\s+/).slice(0, 20).join(' ');
+                countContainer.classList.add('danger');
+                const wordsArray = this.value.trim().split(/\s+/);
+                this.value = wordsArray.slice(0, 20).join(' ');
             }
         });
         
-        // Handle form submission - relate to /create_post
+        // Form submission
         document.getElementById('postForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            var cloudinaryUrl = 'https://api.cloudinary.com/v1_1/dqbpvc8a7/upload';
-            var uploadPreset = 'worldy_photo';
+            const submitBtn = document.getElementById('post-btn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<div class="loading"></div> Sharing...';
+            submitBtn.disabled = true;
+            
+            const cloudinaryUrl = 'https://api.cloudinary.com/v1_1/dqbpvc8a7/upload';
+            const uploadPreset = 'worldy_photo';
             const formData = new FormData(this);
             
-            // Create Cloudinary form data for photo upload
-            var cloudinaryFormData = new FormData(this);
-            cloudinaryFormData.append('upload_preset', uploadPreset)
-            cloudinaryFormData.append('file', formData.get('photo'))
+            const cloudinaryFormData = new FormData();
+            cloudinaryFormData.append('upload_preset', uploadPreset);
+            cloudinaryFormData.append('file', formData.get('photo'));
             
-            // Upload the photo to Cloudinary
             fetch(cloudinaryUrl, {
                 method: 'POST',
                 body: cloudinaryFormData
@@ -364,16 +733,13 @@
             .then(response => response.json())
             .then(data => {
                 if (data.secure_url) {
-                // Add the Cloudinary URL to the form data
-                formData.append('photo_url', data.secure_url);
-
-                // Submit the form data to your server
-                return fetch('/create_post', {
-                    method: 'POST',
-                    body: formData
-                });
+                    formData.append('photo_url', data.secure_url);
+                    return fetch('/create_post', {
+                        method: 'POST',
+                        body: formData
+                    });
                 } else {
-                throw new Error('Photo upload failed');
+                    throw new Error('Photo upload failed');
                 }
             })
             .then(response => response.json())
@@ -381,21 +747,25 @@
                 if (data.success) {
                     modal.style.display = "none";
 
-                    let popupContent = `<b>${data.title || 'New Memory'}</b>`;
-                    if (data.blog_text) {
-                        popupContent += `<p>${data.blog_text}</p>`;
-                    }
+                    let popupContent = `<div style="text-align: center;">
+                        <h3 style="margin: 0 0 10px 0; color: #4F64E9;">${data.title || 'New Memory'}</h3>`;
+                    
                     if (data.photo_url) {
-                        popupContent += `<img src="${data.photo_url}" style="max-width:100%; height:auto;">`;
+                        popupContent += `<img src="${data.photo_url}" style="max-width:100%; height:auto; border-radius: 8px; margin-bottom: 10px;">`;
                     }
                     
-                    // Permanently load pins
-                    let newMarker = L.marker([data.lat, data.lng], {icon: redIcon}).addTo(map)
-                    newMarker.bindPopup(popupContent)
+                    if (data.blog_text) {
+                        popupContent += `<p style="margin: 0; font-size: 0.9rem; color: #666;">${data.blog_text}</p>`;
+                    }
+                    
+                    popupContent += `</div>`;
+                    
+                    const newMarker = L.marker([data.lat, data.lng], {icon: redIcon}).addTo(map);
+                    newMarker.bindPopup(popupContent);
 
-                    // Reset form
                     this.reset();
                     document.getElementById('wordCount').textContent = '20';
+                    document.querySelector('.file-input-button span').textContent = 'Choose Photo';
                 } else {
                     alert('Error creating post: ' + data.error);
                 }
@@ -403,48 +773,52 @@
             .catch(error => {
                 console.error('Error:', error);
                 alert('Error creating post');
+            })
+            .finally(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             });
         });
 
-        // Reload pins
-        document.addEventListener("DOMContentLoaded", function () {
-            fetch('/get_post')
+        // Load existing posts
+        function loadUserPins(userId) {
+            markersLayer.clearLayers();
+
+            const url = userId ? `/get_user_pins/${userId}` : `/get_post`;
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        data.posts.forEach(post => {
-                            if (post.location && post.location.lat && post.location.lng) {
-                                let marker = L.marker([post.location.lat, post.location.lng], {icon: redIcon}).addTo(map);
-
-                                let popupContent = `<b>${post.title || 'New Memory'}</b>`;
-                                if (post.blog_text) {
-                                    popupContent += `<p>${post.blog_text}</p>`;
-                                }
+                    const posts = userId ? data.posts || data : data.posts;
+                    if (posts) {
+                        posts.forEach(post => {
+                            const lat = post.lat || (post.location && post.location.lat);
+                            const lng = post.lng || (post.location && post.location.lng);
+                            if (lat && lng) {
+                                let popupContent = `<div style="text-align: center;">
+                                    <h3 style="margin: 0 0 10px 0; color: #4F64E9;">${post.title || 'Memory'}</h3>`;
+                                
                                 if (post.photo_url) {
-                                    popupContent += `<img src="${post.photo_url}" style="max-width:100%; height:auto;">`;
+                                    popupContent += `<img src="${post.photo_url}" style="max-width:100%; height:auto; border-radius: 8px; margin-bottom: 10px;">`;
                                 }
+                                
+                                if (post.blog_text) {
+                                    popupContent += `<p style="margin: 0; font-size: 0.9rem; color: #666;">${post.blog_text}</p>`;
+                                }
+                                
+                                popupContent += `</div>`;
 
+                                const marker = L.marker([lat, lng], {icon: redIcon}).addTo(markersLayer);
                                 marker.bindPopup(popupContent);
                             }
                         });
-                    } else {
-                        console.error('Failed to load posts:', data.error);
                     }
                 })
-                .catch(error => console.error('Error fetching posts:', error));
-        });
+                .catch(error => {
+                    console.error('Error loading pins:', error);
+                });
+        }
 
-        // Hide search results when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!searchBox.contains(e.target) && !resultsDiv.contains(e.target) && !e.target.closest('#search-toggle')) {
-                resultsDiv.style.display = 'none';
-                searchBox.style.display = 'none';
-            }
-        });
-    </script>
-
-    <script>
-        // Function to load friends into dropdown
+        // Load friends
         function loadFriends() {
             fetch('/get_friends/' + '{{ session["user_id"] }}')
                 .then(response => response.json())
@@ -453,61 +827,37 @@
                     data.friends.forEach(friend => {
                         const option = document.createElement('option');
                         option.value = friend.id;
-                        option.textContent = friend.username;
+                        option.textContent = friend.username || friend.email;
                         friendSelect.appendChild(option);
                     });
-                });
-        }
-
-        // Function to clear existing pins from map
-        function clearPins() {
-            markersLayer.clearLayers(); 
-        }
-
-        // Function to load pins for a specific user
-        function loadUserPins(userId) {
-            clearPins();
-
-            const url = userId ?  `/get_user_pins/${userId}` : `/get_post`;
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    const posts = userId ? data : data.posts;  // Handle different response structures
-                    if (posts) {
-                        posts.forEach(post => {
-                            const lat = post.lat || (post.location && post.location.lat);
-                            const lng = post.lng || (post.location && post.location.lng);
-                            if (lat && lng) {
-                                let popupContent = `<b>${post.title || 'New Memory'}</b>`;
-                                if (post.blog_text) {
-                                    popupContent += `<p>${post.blog_text}</p>`;
-                                }
-                                if (post.photo_url) {
-                                    popupContent += `<img src="${post.photo_url}" style="max-width:100%; height:auto;">`;
-                                }
-
-                                let marker = L.marker([lat, lng], {icon: redIcon}).addTo(markersLayer);
-                                marker.bindPopup(popupContent);
-                            }
-                        });
-
-                    }
                 })
                 .catch(error => {
-                    console.error('Error loading pins:', error);
+                    console.error('Error loading friends:', error);
                 });
-            }
+        }
 
-        // Add change event listener to friend select
+        // Friend selector change
         document.getElementById('friendSelect').addEventListener('change', (e) => {
             const userId = e.target.value;
             canAddPin = !userId;
             loadUserPins(userId);
         });
 
-        // Load friends when page loads
-        loadFriends();
-        loadUserPins();
+        // Hide search results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchBox.contains(e.target) && !resultsDiv.contains(e.target) && !searchToggle.contains(e.target)) {
+                resultsDiv.style.display = 'none';
+                if (!searchBox.contains(e.target)) {
+                    searchBox.style.display = 'none';
+                }
+            }
+        });
+
+        // Initialize
+        document.addEventListener("DOMContentLoaded", function() {
+            loadFriends();
+            loadUserPins();
+        });
     </script>
 </body>
 </html>
